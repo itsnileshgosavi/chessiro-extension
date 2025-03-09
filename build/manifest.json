@@ -1,0 +1,19 @@
+{
+    "manifest_version": 3,
+    "name": "React Extension",
+    "description": "This is a React Extension",
+    "version": "1.0",
+    "action": {
+      "default_popup": "index.html"
+    },
+    "background": {
+      "service_worker": "background.js"
+    },
+    "permissions": ["storage"],
+    "icons": {
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+    }
+  }
+  
