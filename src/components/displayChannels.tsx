@@ -33,7 +33,7 @@ const DisplayChannels = () => {
     <div>
       {channels.map((item: { channelId: string; id: string }) => {
         return (
-          <div key={item.id} className="flex justify-between space-x-2 my-2.5">
+          <div key={item.id} className="flex justify-between max-h-20 overflow-auto space-x-2 my-2.5">
             <p>{item.channelId}</p>
             <Button
               size={"sm"}
