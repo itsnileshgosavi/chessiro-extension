@@ -1,11 +1,11 @@
 {
-  "name": "vite-project",
+  "name": "chessiro-extension",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && cp -r public/* dist/",
+    "build": "tsc -b && vite build && vite build --config vite.content.config.ts && xcopy /E /I /Y public dist",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -19,6 +19,7 @@
     "next-themes": "^0.4.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-draggable": "^4.5.0",
     "sonner": "^2.0.1",
     "tailwind-merge": "^3.0.2",
     "tailwindcss": "^4.0.12",
