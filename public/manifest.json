@@ -13,12 +13,25 @@
     {
       "matches": [
         "https://www.chess.com/game/live/*",
-        "https://www.chess.com/game/*"
+        "https://www.chess.com/game/*",
+        "https://www.chess.com/play*"
       ],
       "js": [
         "assets/content.js"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.chess.com/game/live/*",
+        "https://www.chess.com/game/*",
+        "https://www.chess.com/play*"
+      ],
+      "js": [
+        "assets/mainWorld.js"
+      ],
+      "run_at": "document_idle",
+      "world": "MAIN"
     }
   ],
   "permissions": [

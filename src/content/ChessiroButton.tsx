@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import Draggable from "react-draggable";
 import { Chess } from "chess.js";
+import { drawNativeArrows, clearNativeArrows, type ArrowMove } from "./drawNativeArrows";
 
 function getChessiroUrl(): string | null {
   const url = window.location.href;
@@ -61,8 +62,28 @@ function computeFenFromMoveList(): string {
   return chess.fen();
 }
 
+// ─── Extension context guard ─────────────────────────────────────────────────
+//
+// Chrome throws "Extension context invalidated" when the extension is reloaded
+// while its content script is still running in a tab.  We check the runtime id
+// before every chrome.* call; if it's gone we bail out silently.
+
+function isContextAlive(): boolean {
+  try {
+    return !!chrome.runtime?.id;
+  } catch {
+    return false;
+  }
+}
+
 /** Persist FEN + game metadata to chrome.storage.local */
-function saveFen() {
+function saveFen(observer?: MutationObserver) {
+  if (!isContextAlive()) {
+    // Context gone — stop the observer so we don't keep firing
+    observer?.disconnect();
+    return;
+  }
+
   const fen = computeFenFromMoveList();
   if (!fen) return;
 
@@ -71,23 +92,28 @@ function saveFen() {
   const gameMatch = url.match(/chess\.com\/game\/(?!live\/)(\d+)/);
   const gameId = (liveMatch ?? gameMatch)?.[1] ?? null;
 
-  chrome.storage.local.set({
-    chessiroFen: { fen, gameId, timestamp: Date.now() },
-  });
+  try {
+    chrome.storage.local.set({
+      chessiroFen: { fen, gameId, timestamp: Date.now() },
+    });
+  } catch {
+    // Context was invalidated between the check and the call — ignore
+  }
 }
 
 // Debounce to avoid spamming storage on rapid DOM mutations
 let fenSaveTimer: ReturnType<typeof setTimeout> | null = null;
+let activeObserver: MutationObserver | null = null;
+
 function debouncedSaveFen() {
   if (fenSaveTimer) clearTimeout(fenSaveTimer);
-  fenSaveTimer = setTimeout(saveFen, 120);
+  fenSaveTimer = setTimeout(() => saveFen(activeObserver ?? undefined), 120);
 }
 
 /** Start observing the move list for DOM mutations */
 function startFenObserver(): MutationObserver {
-  saveFen(); // capture immediately on mount
-
   const observer = new MutationObserver(debouncedSaveFen);
+  activeObserver = observer;
 
   // The move list lives in the regular (light) DOM — no shadow piercing needed.
   // Watch the whole body so we catch the move list being injected after load.
@@ -96,6 +122,8 @@ function startFenObserver(): MutationObserver {
     subtree: true,
     characterData: true, // catches text node updates inside move spans
   });
+
+  saveFen(observer); // capture immediately on mount
 
   return observer;
 }
@@ -143,6 +171,40 @@ export default function ChessiroButton() {
       history.replaceState = origReplace;
       clearInterval(poll);
       fenObserverRef.current?.disconnect();
+    };
+  }, []);
+
+  // ── Draw native board arrows when best moves arrive ──────────────────────
+  useEffect(() => {
+    if (!isContextAlive()) return;
+
+    // Initial read on mount
+    try {
+      chrome.storage.local.get(["chessiroBestMoves"], (res) => {
+        if (!isContextAlive()) return;
+        const stored = res.chessiroBestMoves as { lines: ArrowMove[] } | undefined;
+        if (stored?.lines?.length) drawNativeArrows(stored.lines);
+      });
+    } catch { /* context invalidated */ }
+
+    const handleChange = (changes: { [k: string]: chrome.storage.StorageChange }) => {
+      if (!changes.chessiroBestMoves) return;
+      const stored = changes.chessiroBestMoves.newValue as { lines: ArrowMove[] } | undefined;
+      if (stored?.lines?.length) {
+        drawNativeArrows(stored.lines);
+      } else {
+        clearNativeArrows();
+      }
+    };
+
+    try {
+      chrome.storage.onChanged.addListener(handleChange);
+    } catch { /* context invalidated */ }
+
+    return () => {
+      try {
+        chrome.storage.onChanged.removeListener(handleChange);
+      } catch { /* context already gone */ }
     };
   }, []);
 

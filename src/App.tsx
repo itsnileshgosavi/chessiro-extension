@@ -31,6 +31,17 @@ function App() {
     if (fenData?.fen) analyse(fenData.fen);
   }, [fenData?.fen, analyse]);
 
+  // Broadcast best-move lines → content script draws native arrows on the board
+  useEffect(() => {
+    if (result.loading || !result.lines.some((l) => l.move)) return;
+    const lines = result.lines
+      .filter((l) => l.move)
+      .map((l, i) => ({ move: l.move, rank: i }));
+    chrome.storage.local.set({
+      chessiroBestMoves: { lines, fen: fenData?.fen ?? "", timestamp: Date.now() },
+    });
+  }, [result.lines, result.loading, fenData?.fen]);
+
   return (
     <main className="container flex flex-col items-center w-96 py-4 px-3 gap-3">
       <h1 className="text-center font-bold text-2xl w-full">
