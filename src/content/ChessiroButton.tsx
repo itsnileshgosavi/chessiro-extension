@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import Draggable from "react-draggable";
 import { Chess } from "chess.js";
-import { drawNativeArrows, clearNativeArrows, type ArrowMove } from "./drawNativeArrows";
+import {
+  drawNativeArrows,
+  clearNativeArrows,
+  type ArrowMove,
+} from "./drawNativeArrows";
 
 function getChessiroUrl(): string | null {
   const url = window.location.href;
@@ -39,9 +43,7 @@ function getChessiroUrl(): string | null {
 function computeFenFromMoveList(): string {
   // Each half-move (ply) is a .node.main-line-ply element.
   // The SAN text is inside the .node-highlight-content child span.
-  const plies = document.querySelectorAll(
-    ".main-line-row .node.main-line-ply",
-  );
+  const plies = document.querySelectorAll(".main-line-row .node.main-line-ply");
 
   if (plies.length === 0) return "";
 
@@ -182,14 +184,25 @@ export default function ChessiroButton() {
     try {
       chrome.storage.local.get(["chessiroBestMoves"], (res) => {
         if (!isContextAlive()) return;
-        const stored = res.chessiroBestMoves as { lines: ArrowMove[] } | undefined;
+        const stored = res.chessiroBestMoves as
+          | { lines: ArrowMove[] }
+          | undefined;
         if (stored?.lines?.length) drawNativeArrows(stored.lines);
       });
-    } catch { /* context invalidated */ }
+    } catch {
+      /* context invalidated */
+    }
 
-    const handleChange = (changes: { [k: string]: chrome.storage.StorageChange }) => {
+    const handleChange = (changes: {
+      [k: string]: chrome.storage.StorageChange;
+    }) => {
       if (!changes.chessiroBestMoves) return;
-      const stored = changes.chessiroBestMoves.newValue as { lines: ArrowMove[] } | undefined;
+      if (changes.chessiroBestMoves) {
+        clearNativeArrows();
+      }
+      const stored = changes.chessiroBestMoves.newValue as
+        | { lines: ArrowMove[] }
+        | undefined;
       if (stored?.lines?.length) {
         drawNativeArrows(stored.lines);
       } else {
@@ -199,12 +212,16 @@ export default function ChessiroButton() {
 
     try {
       chrome.storage.onChanged.addListener(handleChange);
-    } catch { /* context invalidated */ }
+    } catch {
+      /* context invalidated */
+    }
 
     return () => {
       try {
         chrome.storage.onChanged.removeListener(handleChange);
-      } catch { /* context already gone */ }
+      } catch {
+        /* context already gone */
+      }
     };
   }, []);
 

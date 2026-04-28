@@ -10,9 +10,9 @@
 export type ArrowMove = { move: string; rank: number };
 
 export function drawNativeArrows(moves: ArrowMove[]): void {
-  window.postMessage({ source: "chessiro", type: "draw-arrows", moves }, "*");
+  window.postMessage({ source: "chess", type: "draw-arrows", moves }, "*");
 }
 
 export function clearNativeArrows(): void {
-  window.postMessage({ source: "chessiro", type: "clear-arrows" }, "*");
+  window.postMessage({ source: "chess", type: "clear-arrows" }, "*");
 }
